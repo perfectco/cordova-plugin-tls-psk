@@ -1,0 +1,9 @@
+{
+  "name": "cordova-plugin-tls-psk",
+  "version": "0",
+  "description": "Cordova TLS-PSK Plugin",
+  "cordova": {
+    "id": "cordova-plugin-tls-psk",
+    "platforms": [ "android" ]
+  }
+}

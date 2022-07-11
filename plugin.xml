@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-tls-psk" version="0">
+  <name>TLS-PSK</name>
+  <description>Cordova TLS-PSK Plugin</description>
+  <license>Apache 2.0</license>
+  <keywords>cordova,psk,tls-psk,tls_psk</keywords>
+  <js-module src="www/tls-psk.js" name="tls_psk">
+    <clobbers target="cordova.plugins.tls_psk" />
+  </js-module>
+
+  <platform name="android">
+    <config-file target="AndroidManifest.xml" parent="/manifest">
+      <uses-permission android:name="android.permission.INTERNET" />
+    </config-file>
+    <config-file target="res/xml/config.xml" parent="/*">
+      <feature name="tls_psk">
+        <param name="android-package" value="com.perfectco.cordova.TlsPskPlugin" />
+      </feature>
+    </config-file>
+    <source-file src="src/android/com/perfectco/cordova/TlsPskPlugin.java" target-dir="src/com/perfectco/cordova" />
+    <framework src="org.bouncycastle:bctls-jdk15to18:1.71" />
+  </platform>
+</plugin>
