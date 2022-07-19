@@ -55,43 +55,44 @@ public class TlsPskPlugin extends CordovaPlugin {
           return false;
         }
 
-        try {
-          UUID id = connect(host, port, key);
-          JSONObject status = new JSONObject();
-          status.put("uuid", id.toString());
-          PluginResult result = new PluginResult(PluginResult.Status.OK, status);
-          result.setKeepCallback(true);
-          callbackContext.sendPluginResult(result);
-        } catch (IOException | JSONException e) {
-          Log.e(TAG, e.getMessage(), e);
-          callbackContext.error("Connect error");
-          return false;
-        }
+        cordova.getThreadPool().execute(() -> {
+          try {
+            UUID uuid = connect(host, port, key);
+            JSONObject status = new JSONObject();
+            status.put("uuid", uuid.toString());
+            PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+            result.setKeepCallback(true);
+            callbackContext.sendPluginResult(result);
+          } catch (IOException | JSONException e) {
+            Log.e(TAG, e.getMessage(), e);
+            callbackContext.error("Connect error");
+          }
+        });
       } return true;
       case ACTION_CLOSE: {
-        UUID id;
+        UUID uuid;
         try {
-          String sid = args.getString(0);
-          id = UUID.fromString(sid);
+          uuid = UUID.fromString(args.getString(0));
         } catch (JSONException | IllegalArgumentException e) {
           Log.e(TAG, e.getMessage(), e);
           callbackContext.error("Unknown client");
           return false;
         }
 
-        try {
-          close(id);
-          callbackContext.success();
-        } catch (IOException e) {
-          Log.e(TAG, e.getMessage(), e);
-          callbackContext.error("Error closing");
-          return false;
-        }
+        cordova.getThreadPool().execute(() -> {
+          try {
+            close(uuid);
+            callbackContext.success();
+          } catch (IOException e) {
+            Log.e(TAG, e.getMessage(), e);
+            callbackContext.error("Error closing");
+          }
+        });
       } return true;
-      case ACTION_SEND:
-        UUID id;
+      case ACTION_SEND: {
+        UUID uuid;
         try {
-          id = UUID.fromString(args.getString(0));
+          uuid = UUID.fromString(args.getString(0));
         } catch (JSONException | IllegalArgumentException e) {
           Log.e(TAG, e.getMessage(), e);
           callbackContext.error("Unknown client");
@@ -107,15 +108,16 @@ public class TlsPskPlugin extends CordovaPlugin {
           return false;
         }
 
-        try {
-          send(id, data);
-          callbackContext.success();
-        } catch (IOException e) {
-          Log.e(TAG, e.getMessage(), e);
-          callbackContext.error("Error sending message");
-          return false;
-        }
-        break;
+        cordova.getThreadPool().execute(() -> {
+          try {
+              send(uuid, data);
+              callbackContext.success();
+          } catch (IOException e) {
+            Log.e(TAG, e.getMessage(), e);
+            callbackContext.error("Error sending message");
+          }
+        });
+      } return true;
       case ACTION_START:
         break;
       case ACTION_STOP:
