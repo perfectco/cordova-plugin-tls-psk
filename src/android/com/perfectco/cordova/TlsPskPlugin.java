@@ -1,6 +1,5 @@
 package com.perfectco.cordova;
 
-import android.util.Base64;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
@@ -11,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -48,8 +48,7 @@ public class TlsPskPlugin extends CordovaPlugin {
 
         byte[] key;
         try {
-          String base64 = args.getString(2);
-          key = Base64.decode(base64, Base64.DEFAULT);
+          key = toByteArray(args.get(2));
         } catch (JSONException e) {
           Log.e(TAG, e.getMessage(), e);
           callbackContext.error("Key error");
@@ -90,6 +89,32 @@ public class TlsPskPlugin extends CordovaPlugin {
         }
       } return true;
       case ACTION_SEND:
+        UUID id;
+        try {
+          id = UUID.fromString(args.getString(0));
+        } catch (JSONException | IllegalArgumentException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Unknown client");
+          return false;
+        }
+
+        byte[] data;
+        try {
+          data = toByteArray(args.get(1));
+        } catch (JSONException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Unable to serialize message");
+          return false;
+        }
+
+        try {
+          send(id, data);
+          callbackContext.success();
+        } catch (IOException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Error sending message");
+          return false;
+        }
         break;
       case ACTION_START:
         break;
@@ -106,11 +131,33 @@ public class TlsPskPlugin extends CordovaPlugin {
     return client.getId();
   }
 
+  private void send(UUID id, byte[] data) throws IOException {
+    TlsPskClient client = clients.get(id);
+    if (client != null) {
+      client.send(data);
+    }
+  }
+
   private void close(UUID id) throws IOException {
     TlsPskClient client = clients.get(id);
     if (client != null) {
       client.close();
       clients.remove(id);
+    }
+  }
+
+  private byte[] toByteArray(Object fromJson) throws JSONException {
+    if (fromJson instanceof String) {
+      return ((String) fromJson).getBytes(StandardCharsets.UTF_8);
+    } else if (fromJson instanceof JSONArray) {
+      JSONArray arry = (JSONArray) fromJson;
+      byte[] bytes = new byte[arry.length()];
+      for (int i = 0; i < arry.length(); i++) {
+        bytes[i] = (byte)arry.getInt(i);
+      }
+      return bytes;
+    } else {
+      throw new JSONException("unknown type");
     }
   }
 }

@@ -32,6 +32,10 @@ public class TlsPskClient {
     protocol.connect(client);
   }
 
+  public void send(byte[] data) throws IOException {
+    protocol.getOutputStream().write(data);
+  }
+
   public void close() throws IOException {
     protocol.close();
     socket.close();
