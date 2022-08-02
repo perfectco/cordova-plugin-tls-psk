@@ -1,0 +1,9 @@
+{
+  "name": "cordova-plugin-tls-psk-tests",
+  "version": "0",
+  "description": "",
+  "cordova": {
+    "id": "cordova-plugin-tls-psk-tests",
+    "platforms": []
+  }
+}

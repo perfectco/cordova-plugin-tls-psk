@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-tls-psk-tests" version="0">
+  <name>TLS-PSK tests</name>
+  <license>Apache 2.0</license>
+  <js-module src="tests.js" name="tests" />
+</plugin>
