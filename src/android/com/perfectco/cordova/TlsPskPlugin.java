@@ -57,7 +57,7 @@ public class TlsPskPlugin extends CordovaPlugin {
 
         cordova.getThreadPool().execute(() -> {
           try {
-            UUID uuid = connect(host, port, key);
+            UUID uuid = connect(host, port, key, callbackContext);
             JSONObject status = new JSONObject();
             status.put("uuid", uuid.toString());
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
@@ -126,11 +126,12 @@ public class TlsPskPlugin extends CordovaPlugin {
     return false;
   }
 
-  private UUID connect(String host, int port, byte[] key) throws IOException {
+  private UUID connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
     TlsPskClient client = new TlsPskClient(key);
-    clients.put(client.getId(), client);
+    clients.put(client.getUuid(), client);
     client.connect(host, port);
-    return client.getId();
+    client.startReceive(cb);
+    return client.getUuid();
   }
 
   private void send(UUID id, byte[] data) throws IOException {

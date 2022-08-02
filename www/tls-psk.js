@@ -11,9 +11,18 @@ function toByteArrayOrString(data) {
 class TlsPskClientSocket {
   connect(host, port, key, success, failure) {
     key = toByteArrayOrString(key);
-    exec((c) => {
-      this.uuid = c.uuid;
-      success("OK");
+    exec((result) => {
+      switch (result.action) {
+        case 'onReceive':
+          if (this.onReceive) {
+            this.onReceive(result.buffer);
+          }
+          break;
+        default:
+          this.uuid = result.uuid;
+          success("OK");
+          break;
+      }
     }, failure, "tls_psk", "connect", [host, port, key]);
   }
 
