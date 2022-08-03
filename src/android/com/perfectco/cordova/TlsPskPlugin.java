@@ -5,16 +5,20 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
+import org.bouncycastle.tls.crypto.TlsCrypto;
+import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.UUID;
 
 public class TlsPskPlugin extends CordovaPlugin {
+  public static final TlsCrypto CRYPTO = new BcTlsCrypto(new SecureRandom());
   static final String TAG = "TlsPskPlugin";
   static final String ACTION_CONNECT = "connect";
   static final String ACTION_CLOSE = "close";
@@ -129,8 +133,7 @@ public class TlsPskPlugin extends CordovaPlugin {
   private UUID connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
     TlsPskClient client = new TlsPskClient(key);
     clients.put(client.getUuid(), client);
-    client.connect(host, port);
-    client.startReceive(cb);
+    client.connect(host, port, cb);
     return client.getUuid();
   }
 

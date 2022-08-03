@@ -5,8 +5,7 @@ import org.apache.cordova.PluginResult;
 import org.bouncycastle.tls.PSKTlsClient;
 import org.bouncycastle.tls.TlsClient;
 import org.bouncycastle.tls.TlsClientProtocol;
-import org.bouncycastle.tls.crypto.TlsCrypto;
-import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
+import org.bouncycastle.tls.TlsProtocol;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -14,18 +13,14 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.UUID;
 
 public class TlsPskClient {
-  private static final TlsCrypto crypto = new BcTlsCrypto(new SecureRandom());
   private final TlsClient client;
   private final UUID uuid = UUID.randomUUID();
 
   private Socket socket;
-  private TlsClientProtocol protocol;
+  private TlsProtocol protocol;
   private Thread receiveThread;
 
   public TlsPskClient(byte[] key) {
@@ -34,27 +29,49 @@ public class TlsPskClient {
 
   public UUID getUuid() { return uuid; }
 
-  public void connect(String host, int port) throws IOException {
-    socket = new Socket(host, port);
-    protocol = new TlsClientProtocol(socket.getInputStream(), socket.getOutputStream());
+  public void connect(String host, int port, final CallbackContext callbackContext) throws IOException {
+    if (socket != null || protocol != null || receiveThread != null) {
+      throw new IllegalStateException();
+    }
 
-    protocol.connect(client);
+    socket = new Socket(host, port);
+    TlsClientProtocol clientProtocol = new TlsClientProtocol(socket.getInputStream(), socket.getOutputStream());
+    protocol = clientProtocol;
+
+    clientProtocol.connect(client);
+    startReceiveThread(callbackContext);
   }
 
   public void send(byte[] data) throws IOException {
     protocol.getOutputStream().write(data);
   }
 
-  public void close() throws IOException {
-    receiveThread.interrupt();
-    protocol.close();
-    socket.close();
-    try {
-      receiveThread.join();
-    } catch (InterruptedException ignored) {}
+  public void close() {
+    if (receiveThread != null) {
+      receiveThread.interrupt();
+    }
+    if (protocol != null) {
+      try {
+        protocol.close();
+        protocol = null;
+      } catch (IOException ignored) {}
+    }
+    if (socket != null) {
+      try {
+        socket.close();
+        socket = null;
+      } catch (IOException ignored) {}
+    }
+    if (receiveThread != null) {
+      try {
+        receiveThread.join();
+        receiveThread = null;
+      } catch (InterruptedException ignored) {
+      }
+    }
   }
 
-  public void startReceive(final CallbackContext callbackContext) {
+  private void startReceiveThread(CallbackContext callbackContext) {
     receiveThread = new Thread(() -> {
       try (InputStream inputStream = protocol.getInputStream()) {
         byte[] buf = new byte[1024];
@@ -79,7 +96,7 @@ public class TlsPskClient {
   }
 
   private static TlsClient createClient(byte[] key) {
-    return new PSKTlsClient(crypto, new byte[0], key);
+    return new PSKTlsClient(TlsPskPlugin.CRYPTO, new byte[0], key);
   }
 
   private static JSONArray toJSONArray(final byte[] bytes, final int off, final int len) {
