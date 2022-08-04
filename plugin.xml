@@ -18,7 +18,9 @@
       </feature>
     </config-file>
     <source-file src="src/android/com/perfectco/cordova/TlsPskPlugin.java" target-dir="src/com/perfectco/cordova" />
-    <source-file src="src/android/com/perfectco/cordova/TlsPskClient.java" target-dir="src/com/perfectco/cordova" />
+    <source-file src="src/android/com/perfectco/cordova/TlsPskServer.java" target-dir="src/com/perfectco/cordova" />
+    <source-file src="src/android/com/perfectco/cordova/TlsPskSocket.java" target-dir="src/com/perfectco/cordova" />
+    <source-file src="src/android/com/perfectco/cordova/TlsPskClientSocket.java" target-dir="src/com/perfectco/cordova" />
     <framework src="org.bouncycastle:bctls-jdk15to18:1.71" />
   </platform>
 </plugin>

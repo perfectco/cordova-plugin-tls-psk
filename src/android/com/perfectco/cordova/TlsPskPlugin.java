@@ -5,36 +5,44 @@ import android.util.Log;
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
-import org.bouncycastle.tls.crypto.TlsCrypto;
-import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.UUID;
 
 public class TlsPskPlugin extends CordovaPlugin {
-  public static final TlsCrypto CRYPTO = new BcTlsCrypto(new SecureRandom());
   static final String TAG = "TlsPskPlugin";
   static final String ACTION_CONNECT = "connect";
   static final String ACTION_CLOSE = "close";
   static final String ACTION_SEND = "send";
+  static final String ACTION_RECEIVE = "receive";
   static final String ACTION_START = "start";
   static final String ACTION_STOP = "stop";
 
-  HashMap<UUID, TlsPskClient> clients = new HashMap<>();
+  HashMap<UUID, TlsPskSocket> clients = new HashMap<>();
+  HashMap<UUID, TlsPskServer> servers = new HashMap<>();
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
     switch (action) {
       case ACTION_CONNECT: {
+        byte[] key;
+        try {
+          key = toByteArray(args.get(0));
+        } catch (JSONException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Key error");
+          return false;
+        }
+
         String host;
         try {
-          host = args.getString(0);
+          host = args.getString(1);
         } catch (JSONException e) {
           Log.e(TAG, e.getMessage(), e);
           callbackContext.error("Hostname error");
@@ -43,29 +51,21 @@ public class TlsPskPlugin extends CordovaPlugin {
 
         int port;
         try {
-          port = args.getInt(1);
+          port = args.getInt(2);
         } catch (JSONException e) {
           Log.e(TAG, e.getMessage(), e);
           callbackContext.error("Port error");
           return false;
         }
 
-        byte[] key;
-        try {
-          key = toByteArray(args.get(2));
-        } catch (JSONException e) {
-          Log.e(TAG, e.getMessage(), e);
-          callbackContext.error("Key error");
-          return false;
-        }
-
         cordova.getThreadPool().execute(() -> {
           try {
-            UUID uuid = connect(host, port, key, callbackContext);
+            TlsPskSocket client = connect(host, port, key, callbackContext);
             JSONObject status = new JSONObject();
-            status.put("uuid", uuid.toString());
+            status.put("uuid", client.getUuid().toString());
+            status.put("host", host);
+            status.put("port", port);
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
-            result.setKeepCallback(true);
             callbackContext.sendPluginResult(result);
           } catch (IOException | JSONException e) {
             Log.e(TAG, e.getMessage(), e);
@@ -114,41 +114,131 @@ public class TlsPskPlugin extends CordovaPlugin {
 
         cordova.getThreadPool().execute(() -> {
           try {
-              send(uuid, data);
-              callbackContext.success();
+            send(uuid, data);
+            callbackContext.success();
           } catch (IOException e) {
             Log.e(TAG, e.getMessage(), e);
             callbackContext.error("Error sending message");
           }
         });
       } return true;
-      case ACTION_START:
-        break;
-      case ACTION_STOP:
-        break;
+      case ACTION_RECEIVE: {
+        UUID uuid;
+        try {
+          uuid = UUID.fromString(args.getString(0));
+        } catch (JSONException | IllegalArgumentException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Unknown client");
+          return false;
+        }
+
+        receive(uuid, callbackContext);
+      } return true;
+      case ACTION_START: {
+        byte[] key;
+        try {
+          key = toByteArray(args.get(0));
+        } catch (JSONException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Key error");
+          return false;
+        }
+
+        int port = args.optInt(1, 0);
+
+        cordova.getThreadPool().execute(() -> {
+          try {
+            TlsPskServer server = start(key, port, callbackContext);
+            JSONObject status = new JSONObject();
+            status.put("uuid", server.getUuid().toString());
+            status.put("port", server.getPort());
+            PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+            result.setKeepCallback(true);
+            callbackContext.sendPluginResult(result);
+          } catch (IOException | JSONException e) {
+            Log.e(TAG, e.getMessage(), e);
+            callbackContext.error("Start error");
+          }
+        });
+      } return true;
+      case ACTION_STOP: {
+        UUID uuid;
+        try {
+          uuid = UUID.fromString(args.getString(0));
+        } catch (JSONException | IllegalArgumentException e) {
+          Log.e(TAG, e.getMessage(), e);
+          callbackContext.error("Unknown server");
+          return false;
+        }
+
+        cordova.getThreadPool().execute(() -> {
+          try {
+            stop(uuid);
+            callbackContext.success();
+          } catch (IOException e) {
+            Log.e(TAG, e.getMessage(), e);
+            callbackContext.error("Error stopping");
+          }
+        });
+      } return true;
     }
     return false;
   }
 
-  private UUID connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
-    TlsPskClient client = new TlsPskClient(key);
+  private TlsPskSocket connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
+    TlsPskClientSocket client = new TlsPskClientSocket(key);
     clients.put(client.getUuid(), client);
     client.connect(host, port, cb);
-    return client.getUuid();
-  }
-
-  private void send(UUID id, byte[] data) throws IOException {
-    TlsPskClient client = clients.get(id);
-    if (client != null) {
-      client.send(data);
-    }
+    return client;
   }
 
   private void close(UUID id) throws IOException {
-    TlsPskClient client = clients.get(id);
-    if (client != null) {
-      client.close();
+    TlsPskSocket socket = clients.get(id);
+    if (socket != null) {
+      socket.close();
       clients.remove(id);
+    }
+  }
+
+  private void send(UUID id, byte[] data) throws IOException {
+    TlsPskSocket socket = clients.get(id);
+    if (socket != null) {
+      socket.send(data);
+    }
+  }
+
+  private void receive(UUID id, CallbackContext cb) {
+    TlsPskSocket socket = clients.get(id);
+    if (socket != null) {
+      socket.startReceiveThread(cb);
+    }
+  }
+
+  private TlsPskServer start(byte[] key, int port, final CallbackContext cb) throws IOException {
+    TlsPskServer server = new TlsPskServer(key);
+    servers.put(server.getUuid(), server);
+    server.start(port, cordova.getThreadPool(), (client) -> {
+      clients.put(client.getUuid(), client);
+      InetSocketAddress addr = client.getSocketAddress();
+      try {
+        JSONObject status = new JSONObject();
+        status.put("action", "onAccept");
+        status.put("uuid", client.getUuid());
+        status.put("host", addr.getAddress().getHostAddress());
+        status.put("port", addr.getPort());
+        PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+        result.setKeepCallback(true);
+        cb.sendPluginResult(result);
+      } catch (JSONException ignored) {}
+    });
+    return server;
+  }
+
+  private void stop(UUID id) throws IOException {
+    TlsPskServer server = servers.get(id);
+    if (server != null) {
+      server.stop();
+      servers.remove(id);
     }
   }
 

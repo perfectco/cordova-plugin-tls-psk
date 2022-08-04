@@ -2,44 +2,38 @@ package com.perfectco.cordova;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.PluginResult;
-import org.bouncycastle.tls.PSKTlsClient;
-import org.bouncycastle.tls.TlsClient;
-import org.bouncycastle.tls.TlsClientProtocol;
 import org.bouncycastle.tls.TlsProtocol;
+import org.bouncycastle.tls.crypto.TlsCrypto;
+import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.security.SecureRandom;
 import java.util.UUID;
 
-public class TlsPskClient {
-  private final TlsClient client;
+public class TlsPskSocket {
+  public static final TlsCrypto CRYPTO = new BcTlsCrypto(new SecureRandom());
   private final UUID uuid = UUID.randomUUID();
 
   private Socket socket;
   private TlsProtocol protocol;
   private Thread receiveThread;
 
-  public TlsPskClient(byte[] key) {
-    client = createClient(key);
+  public TlsPskSocket(Socket socket, TlsProtocol protocol) {
+    connected(socket, protocol);
   }
+
+  protected TlsPskSocket() {}
 
   public UUID getUuid() { return uuid; }
 
-  public void connect(String host, int port, final CallbackContext callbackContext) throws IOException {
-    if (socket != null || protocol != null || receiveThread != null) {
-      throw new IllegalStateException();
-    }
-
-    socket = new Socket(host, port);
-    TlsClientProtocol clientProtocol = new TlsClientProtocol(socket.getInputStream(), socket.getOutputStream());
-    protocol = clientProtocol;
-
-    clientProtocol.connect(client);
-    startReceiveThread(callbackContext);
+  public InetSocketAddress getSocketAddress() {
+    return socket != null ? (InetSocketAddress) socket.getRemoteSocketAddress() : null;
   }
 
   public void send(byte[] data) throws IOException {
@@ -71,7 +65,24 @@ public class TlsPskClient {
     }
   }
 
-  private void startReceiveThread(CallbackContext callbackContext) {
+  public boolean isConnected() {
+    return socket != null || protocol != null || receiveThread != null;
+  }
+
+  protected void connected(Socket socket, TlsProtocol protocol) {
+    if (isConnected()) {
+      throw new IllegalStateException();
+    }
+
+    this.socket = socket;
+    this.protocol = protocol;
+  }
+
+  public void startReceiveThread(CallbackContext callbackContext) {
+    if (receiveThread != null) {
+      throw new IllegalStateException();
+    }
+
     receiveThread = new Thread(() -> {
       try (InputStream inputStream = protocol.getInputStream()) {
         byte[] buf = new byte[1024];
@@ -80,7 +91,6 @@ public class TlsPskClient {
           if (read > 0) {
             try {
               JSONObject status = new JSONObject();
-              status.put("action", "onReceive");
               status.put("uuid", uuid);
               status.put("buffer", toJSONArray(buf, 0, read));
               PluginResult result = new PluginResult(PluginResult.Status.OK, status);
@@ -93,10 +103,6 @@ public class TlsPskClient {
       }
     });
     receiveThread.start();
-  }
-
-  private static TlsClient createClient(byte[] key) {
-    return new PSKTlsClient(TlsPskPlugin.CRYPTO, new byte[0], key);
   }
 
   private static JSONArray toJSONArray(final byte[] bytes, final int off, final int len) {
