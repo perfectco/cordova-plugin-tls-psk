@@ -1,13 +1,8 @@
 package com.perfectco.cordova;
 
-import org.apache.cordova.CallbackContext;
-import org.apache.cordova.PluginResult;
 import org.bouncycastle.tls.TlsProtocol;
 import org.bouncycastle.tls.crypto.TlsCrypto;
 import org.bouncycastle.tls.crypto.impl.bc.BcTlsCrypto;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -23,6 +18,10 @@ public class TlsPskSocket {
   private Socket socket;
   private TlsProtocol protocol;
   private Thread receiveThread;
+
+  public interface ReceiveCallback {
+    void onReceive(byte[] data, int len);
+  }
 
   public TlsPskSocket(Socket socket, TlsProtocol protocol) {
     connected(socket, protocol);
@@ -78,7 +77,7 @@ public class TlsPskSocket {
     this.protocol = protocol;
   }
 
-  public void startReceiveThread(CallbackContext callbackContext) {
+  public void startReceiveThread(ReceiveCallback receiveCallback) {
     if (receiveThread != null) {
       throw new IllegalStateException();
     }
@@ -89,27 +88,12 @@ public class TlsPskSocket {
         while (!Thread.currentThread().isInterrupted()) {
           int read = inputStream.read(buf);
           if (read > 0) {
-            try {
-              JSONObject status = new JSONObject();
-              status.put("uuid", uuid);
-              status.put("buffer", toJSONArray(buf, 0, read));
-              PluginResult result = new PluginResult(PluginResult.Status.OK, status);
-              result.setKeepCallback(true);
-              callbackContext.sendPluginResult(result);
-            } catch (JSONException ignored) {}
+            receiveCallback.onReceive(buf, read);
           }
         }
       } catch (IOException ignored) {
       }
     });
     receiveThread.start();
-  }
-
-  private static JSONArray toJSONArray(final byte[] bytes, final int off, final int len) {
-    JSONArray array = new JSONArray();
-    for (int i = off; i < off + len; i++) {
-      array.put(bytes[i]);
-    }
-    return array;
   }
 }

@@ -208,9 +208,18 @@ public class TlsPskPlugin extends CordovaPlugin {
   }
 
   private void receive(UUID id, CallbackContext cb) {
-    TlsPskSocket socket = clients.get(id);
+    final TlsPskSocket socket = clients.get(id);
     if (socket != null) {
-      socket.startReceiveThread(cb);
+      socket.startReceiveThread((data, len) -> {
+        try {
+          JSONObject status = new JSONObject();
+          status.put("uuid", socket.getUuid());
+          status.put("data", toJSONArray(data, 0, len));
+          PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+          result.setKeepCallback(true);
+          cb.sendPluginResult(result);
+        } catch (JSONException ignored) {}
+      });
     }
   }
 
@@ -242,7 +251,7 @@ public class TlsPskPlugin extends CordovaPlugin {
     }
   }
 
-  private byte[] toByteArray(Object fromJson) throws JSONException {
+  private static byte[] toByteArray(Object fromJson) throws JSONException {
     if (fromJson instanceof String) {
       return ((String) fromJson).getBytes(StandardCharsets.UTF_8);
     } else if (fromJson instanceof JSONArray) {
@@ -255,5 +264,13 @@ public class TlsPskPlugin extends CordovaPlugin {
     } else {
       throw new JSONException("unknown type");
     }
+  }
+
+  private static JSONArray toJSONArray(final byte[] bytes, final int off, final int len) {
+    JSONArray array = new JSONArray();
+    for (int i = off; i < off + len; i++) {
+      array.put(bytes[i]);
+    }
+    return array;
   }
 }

@@ -24,7 +24,7 @@ class TlsPskSocket {
   connect() {
     exec((result) => {
       if (this.onReceive) {
-        this.onReceive(this, result.buffer);
+        this.onReceive(this, result.data);
       }
     }, null, 'tls_psk', 'receive', [this.uuid]);
   }
