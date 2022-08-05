@@ -77,21 +77,24 @@ public class TlsPskSocket {
     this.protocol = protocol;
   }
 
-  public void startReceiveThread(ReceiveCallback receiveCallback) {
+  public void startReceiveThread(final ReceiveCallback receiveCallback) {
     if (receiveThread != null) {
       throw new IllegalStateException();
     }
 
     receiveThread = new Thread(() -> {
+      if (Thread.currentThread().isInterrupted())
+        return;
       try (InputStream inputStream = protocol.getInputStream()) {
         byte[] buf = new byte[1024];
-        while (!Thread.currentThread().isInterrupted()) {
-          int read = inputStream.read(buf);
+        int read;
+        do {
+          read = inputStream.read(buf);
           if (read > 0) {
             receiveCallback.onReceive(buf, read);
           }
-        }
-      } catch (IOException ignored) {
+        } while (!Thread.currentThread().isInterrupted() && read >= 0);
+      } catch (IOException | NullPointerException ignored) {
       }
     });
     receiveThread.start();

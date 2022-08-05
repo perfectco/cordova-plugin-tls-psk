@@ -18,7 +18,7 @@ class TlsPskSocket {
     }, failure, 'tls_psk', 'close', [this.uuid]);
   }
 
-  send(data, success, failure) {
+  send(success, failure, data) {
     data = toByteArrayOrString(data);
     exec(success, failure, 'tls_psk', 'send', [this.uuid, data]);
   }
@@ -33,7 +33,7 @@ class TlsPskSocket {
 }
 
 class TlsPskClientSocket extends TlsPskSocket {
-  connect(key, host, port, success, failure) {
+  connect(success, failure, key, host, port) {
     key = toByteArrayOrString(key);
     exec((result) => {
       this.uuid = result.uuid;
@@ -46,7 +46,7 @@ class TlsPskClientSocket extends TlsPskSocket {
 };
 
 class TlsPskServer {
-  start(key, port, success, failure) {
+  start(success, failure, key, port) {
     key = toByteArrayOrString(key);
     exec((result) => {
       switch (result.action) {
