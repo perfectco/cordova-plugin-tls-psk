@@ -1,22 +1,24 @@
-exports.defineAutoTests = function() {
-  describe('client socket', () => {
-    let client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+exports.defineAutoTests = () => {
+  describe('TLS-PSK server', () => {
+    let server = new window.cordova.plugins.tls_psk.TlsPskServer();
+    [40000, undefined].forEach((port) => {
+      it('creates, starts, and stops server', async () => {
+        expect(server.uuid).toBeUndefined();
+        expect(server.port).toBeUndefined();
 
-    describe('connects', async () => {
-      var res = await new Promise((resolve, reject) => client.connect('10.0.2.2', 40000, Uint8Array.from([0x12, 0x34]), resolve, reject));
-      expect(res).toBe('OK');
+        var result = await new Promise((res, rej) => server.start(Uint8Array.from([0x12, 0x34]), port, res, rej));
+        expect(result).toBe('OK');
+        expect(server.uuid).toBeDefined();
+        expect(server.port).toBeDefined();
+        if (port) {
+          expect(server.port).toBe(port);
+        }
 
-      it('sends', async () => {
-        res = await new Promise((resolve, reject) => client.send('foo', resolve, reject));
-        expect(res).toBe('OK')
-      });
-
-      it('receives', async () => {
-        client.onReceive = (bytes) => {
-          let text = new TextDecoder('utf-8').decode(Uint8Array.from(bytes));
-          expect(text).toBe('bar\n');
-        };
-      });
+        result = await new Promise((res, rej) => server.stop(res, rej));
+        expect(result).toBe('OK');
+        expect(server.uuid).toBeUndefined();
+        expect(server.port).toBeUndefined();
+      })
     });
   });
 }

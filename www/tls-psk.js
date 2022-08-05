@@ -10,9 +10,11 @@ function toByteArrayOrString(data) {
 
 class TlsPskSocket {
   close(success, failure) {
-    exec((c) => {
+    exec((result) => {
       delete this.uuid;
-      success(c);
+      delete this.host;
+      delete this.port;
+      success(result);
     }, failure, 'tls_psk', 'close', [this.uuid]);
   }
 
@@ -71,7 +73,13 @@ class TlsPskServer {
   }
 
   stop(success, failure) {
-    exec(success, failure, 'tls_psk', 'stop', [this.uuid]);
+    exec((result) => {
+      delete this.uuid;
+      delete this.port;
+      if (success) {
+        success(result);
+      }
+    }, failure, 'tls_psk', 'stop', [this.uuid]);
   }
 };
 
