@@ -60,12 +60,15 @@ exports.defineAutoTests = () => {
 
     it('can send data from the client', async () => {
       const payload = 'foobar';
-      let received;
-      server.onReceive = (conn, data) => received = dataToString(data);
+      let receive = new Promise((res, rej) => {
+        server.onReceive = (conn, data) => res(dataToString(data));
+        setTimeout(rej, 1000);
+      });
       const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
       await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
 
       await new Promise((res, rej) => client.send(res, rej, payload));
+      let received = await receive;
 
       expect(received).toBe(payload);
     });
@@ -73,11 +76,14 @@ exports.defineAutoTests = () => {
     it('can send data from the server', async () => {
       const payload = 'foobar';
       const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
-      let received;
-      client.onReceive = (conn, data) => received = dataToString(data);
+      let receive = new Promise((res, rej) => {
+        client.onReceive = (conn, data) => res(dataToString(data));
+        setTimeout(rej, 1000);
+      });
       await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
 
       await new Promise((res, rej) => clients[0].send(res, rej, payload));
+      let received = await receive;
 
       expect(received).toBe(payload);
     });
