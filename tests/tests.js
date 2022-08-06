@@ -20,6 +20,20 @@ exports.defineAutoTests = () => {
         expect(server.port).toBeUndefined();
       })
     });
+
+    it('errors if already started', async () => {
+      const key = Uint8Array.from([0, 0]);
+      expect(await new Promise((res, rej) => server.start(res, rej, key))).toBe('OK');
+
+      let error;
+      try {
+        await new Promise((res, rej) => server.start(res, rej, key));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Server already started');
+    });
   });
 
   describe('TLS-PSK sockets', () => {
@@ -52,6 +66,20 @@ exports.defineAutoTests = () => {
       result = await new Promise((res, rej) => client.close(res, rej));
       expect(client.host).toBeUndefined();
       expect(client.port).toBeUndefined();
+    });
+
+    it('errors if already connected', async () => {
+      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+      expect(await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port))).toBe('OK');
+
+      let error;
+      try {
+        await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Client already connected');
     });
 
     function dataToString(data) {

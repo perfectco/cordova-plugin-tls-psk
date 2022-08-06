@@ -14,7 +14,9 @@ class TlsPskSocket {
       delete this.uuid;
       delete this.host;
       delete this.port;
-      success(result);
+      if (success) {
+        success(result);
+      }
     }, failure, 'tls_psk', 'close', [this.uuid]);
   }
 
@@ -34,19 +36,33 @@ class TlsPskSocket {
 
 class TlsPskClientSocket extends TlsPskSocket {
   connect(success, failure, key, host, port) {
+    if (this.uuid) {
+      if (failure) {
+        failure('Client already connected');
+      }
+      return;
+    }
     key = toByteArrayOrString(key);
     exec((result) => {
       this.uuid = result.uuid;
       this.host = host;
       this.port = port;
       super.connect();
-      success('OK');
+      if(success) {
+        success('OK');
+      }
     }, failure, 'tls_psk', 'connect', [key, host, port]);
   }
 };
 
 class TlsPskServer {
   start(success, failure, key, port) {
+    if (this.uuid) {
+      if (failure) {
+        failure('Server already started');
+      }
+      return;
+    }
     key = toByteArrayOrString(key);
     exec((result) => {
       switch (result.action) {
@@ -58,7 +74,9 @@ class TlsPskServer {
             socket.port = result.port;
             socket.onReceive = this.onReceive;
             socket.connect();
-            this.onAccept(socket);
+            if (this.onAccept) {
+              this.onAccept(socket);
+            }
           }
           break;
         default:
