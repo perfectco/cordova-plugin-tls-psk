@@ -4,11 +4,13 @@ exports.defineAutoTests = () => {
   describe('TLS-PSK server', () => {
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     afterEach(async () => {
-      await new Promise((res, rej) => server.stop(res, rej));
+      try {
+        await new Promise((res, rej) => server.stop(res, rej));
+      } catch (e) {}
     });
 
     [40000, undefined].forEach((port) => {
-      it('creates, starts, and stops server', async () => {
+      it(`starts, and stops on port ${port}`, async () => {
         expect(server.uuid).toBeUndefined();
         expect(server.port).toBeUndefined();
 
@@ -38,6 +40,17 @@ exports.defineAutoTests = () => {
       }
 
       expect(error).toBe('Server already started');
+    });
+
+    it('errors if not yet started', async () => {
+      let error;
+      try {
+        await new Promise((res, rej) => server.stop(res, rej));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Unknown server');
     });
 
     it('errors on restricted port', async () => {
