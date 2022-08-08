@@ -1,12 +1,18 @@
 exports.defineAutoTests = () => {
+  const key = Uint8Array.from([0x01, 0x23]);
+
   describe('TLS-PSK server', () => {
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
+    afterEach(async () => {
+      await new Promise((res, rej) => server.stop(res, rej));
+    });
+
     [40000, undefined].forEach((port) => {
       it('creates, starts, and stops server', async () => {
         expect(server.uuid).toBeUndefined();
         expect(server.port).toBeUndefined();
 
-        let result = await new Promise((res, rej) => server.start(res, rej, Uint8Array.from([0x12, 0x34]), port));
+        let result = await new Promise((res, rej) => server.start(res, rej, key, port));
         expect(result).toBe('OK');
         expect(server.uuid).toBeDefined();
         expect(server.port).toBeDefined();
@@ -22,7 +28,6 @@ exports.defineAutoTests = () => {
     });
 
     it('errors if already started', async () => {
-      const key = Uint8Array.from([0, 0]);
       expect(await new Promise((res, rej) => server.start(res, rej, key))).toBe('OK');
 
       let error;
@@ -34,13 +39,43 @@ exports.defineAutoTests = () => {
 
       expect(error).toBe('Server already started');
     });
+
+    it('errors on restricted port', async () => {
+      let error;
+      try {
+        await new Promise((res, rej) => server.start(res, rej, key, 9));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Start error');
+      expect(server.uuid).toBeUndefined();
+      expect(server.port).toBeUndefined();
+    });
+  });
+
+  describe('TLS-PSK client', () => {
+    it('errors if server not available', async () => {
+      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+
+      let error;
+      try {
+        await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', 9));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Connect error');
+      expect(client.uuid).toBeUndefined();
+      expect(client.host).toBeUndefined();
+      expect(client.port).toBeUndefined();
+    });
   });
 
   describe('TLS-PSK sockets', () => {
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     const clients = [];
     server.onAccept = (socket) => clients.push(socket);
-    const key = Uint8Array.from([0x01, 0x23]);
 
     beforeEach(async () => {
       await new Promise((res, rej) => server.start(res, rej, key));
@@ -80,6 +115,25 @@ exports.defineAutoTests = () => {
       }
 
       expect(error).toBe('Client already connected');
+
+      await new Promise((res, rej) => client.close(res, rej));
+    });
+
+    it('errors on incorrect key', async () => {
+      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+      const badKey = Uint8Array.from([0xAB, 0xCD, 0xEF]);
+
+      let error;
+      try {
+        await new Promise((res, rej) => client.connect(res, rej, badKey, 'localhost', server.port));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Connect error');
+      expect(client.uuid).toBeUndefined();
+      expect(client.host).toBeUndefined();
+      expect(client.port).toBeUndefined();
     });
 
     function dataToString(data) {
@@ -99,6 +153,8 @@ exports.defineAutoTests = () => {
       let received = await receive;
 
       expect(received).toBe(payload);
+
+      await new Promise((res, rej) => client.close(res, rej));
     });
 
     it('can send data from the server', async () => {
@@ -114,6 +170,8 @@ exports.defineAutoTests = () => {
       let received = await receive;
 
       expect(received).toBe(payload);
+
+      await new Promise((res, rej) => client.close(res, rej));
     });
   });
 }
