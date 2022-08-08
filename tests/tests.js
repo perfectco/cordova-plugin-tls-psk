@@ -10,7 +10,7 @@ exports.defineAutoTests = () => {
     });
 
     [40000, undefined].forEach((port) => {
-      it(`starts, and stops on port ${port}`, async () => {
+      it(`starts and stops on port ${port}`, async () => {
         expect(server.uuid).toBeUndefined();
         expect(server.port).toBeUndefined();
 
@@ -42,7 +42,7 @@ exports.defineAutoTests = () => {
       expect(error).toBe('Server already started');
     });
 
-    it('errors if not yet started', async () => {
+    it('errors on stop if not yet started', async () => {
       let error;
       try {
         await new Promise((res, rej) => server.stop(res, rej));
@@ -83,6 +83,19 @@ exports.defineAutoTests = () => {
       expect(client.host).toBeUndefined();
       expect(client.port).toBeUndefined();
     });
+
+    ['send', 'close'].forEach((method) => it(`errors on ${method} if not connected`, async () => {
+      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+
+      let error;
+      try {
+        await new Promise((res, rej) => client[method](res, rej, 'payload'));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Unknown client');
+    }));
   });
 
   describe('TLS-PSK sockets', () => {
