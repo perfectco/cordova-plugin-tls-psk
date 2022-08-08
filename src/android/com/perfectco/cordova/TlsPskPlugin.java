@@ -16,16 +16,16 @@ import java.util.HashMap;
 import java.util.UUID;
 
 public class TlsPskPlugin extends CordovaPlugin {
-  static final String TAG = "TlsPskPlugin";
-  static final String ACTION_CONNECT = "connect";
-  static final String ACTION_CLOSE = "close";
-  static final String ACTION_SEND = "send";
-  static final String ACTION_RECEIVE = "receive";
-  static final String ACTION_START = "start";
-  static final String ACTION_STOP = "stop";
+  private static final String TAG = "TlsPskPlugin";
+  private static final String ACTION_CONNECT = "connect";
+  private static final String ACTION_CLOSE = "close";
+  private static final String ACTION_SEND = "send";
+  private static final String ACTION_RECEIVE = "receive";
+  private static final String ACTION_START = "start";
+  private static final String ACTION_STOP = "stop";
 
-  HashMap<UUID, TlsPskSocket> clients = new HashMap<>();
-  HashMap<UUID, TlsPskServer> servers = new HashMap<>();
+  private final HashMap<UUID, TlsPskSocket> clients = new HashMap<>();
+  private final HashMap<UUID, TlsPskServer> servers = new HashMap<>();
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
