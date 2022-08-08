@@ -86,6 +86,7 @@ exports.defineAutoTests = () => {
   });
 
   describe('TLS-PSK sockets', () => {
+    const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     const clients = [];
     server.onAccept = (socket) => clients.push(socket);
@@ -95,16 +96,19 @@ exports.defineAutoTests = () => {
     });
 
     afterEach(async () => {
+      try {
+        await new Promise((res, rej) => client.close(res, rej));
+      } catch (e) {}
+      delete client.onReceive;
       await Promise.all(clients.map(async (client) => {
         return new Promise((res, rej) => client.close(res, rej));
       }));
       clients.length = 0;
       await new Promise((res, rej) => server.stop(res, rej));
+      delete server.onReceive;
     });
 
     it('accepts client connections', async () => {
-      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
-
       let result = await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
       expect(result).toBe('OK');
       expect(client.host).toBe('localhost');
@@ -117,7 +121,6 @@ exports.defineAutoTests = () => {
     });
 
     it('errors if already connected', async () => {
-      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
       expect(await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port))).toBe('OK');
 
       let error;
@@ -133,7 +136,6 @@ exports.defineAutoTests = () => {
     });
 
     it('errors on incorrect key', async () => {
-      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
       const badKey = Uint8Array.from([0xAB, 0xCD, 0xEF]);
 
       let error;
@@ -159,7 +161,6 @@ exports.defineAutoTests = () => {
         server.onReceive = (conn, data) => res(dataToString(data));
         setTimeout(rej, 1000);
       });
-      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
       await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
 
       await new Promise((res, rej) => client.send(res, rej, payload));
@@ -172,7 +173,6 @@ exports.defineAutoTests = () => {
 
     it('can send data from the server', async () => {
       const payload = 'foobar';
-      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
       let receive = new Promise((res, rej) => {
         client.onReceive = (conn, data) => res(dataToString(data));
         setTimeout(rej, 1000);
