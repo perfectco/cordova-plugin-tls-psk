@@ -173,6 +173,20 @@ exports.defineAutoTests = () => {
       expect(client.port).toBeUndefined();
     });
 
+    it('errors on multiple clients w/ same key', async () => {
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+      const client2 = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+
+      let error;
+      try {
+        await new Promise((res, rej) => client2.connect(res, rej, key, 'localhost', server.port));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).toBe('Connect error');
+    });
+
     function dataToString(data) {
       return new TextDecoder('utf-8').decode(Uint8Array.from(data).buffer);
     }
