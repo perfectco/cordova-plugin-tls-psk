@@ -1,6 +1,7 @@
 package com.perfectco.cordova;
 
 import org.bouncycastle.tls.PSKTlsClient;
+import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.TlsClient;
 import org.bouncycastle.tls.TlsClientProtocol;
 
@@ -26,6 +27,11 @@ public class TlsPskClientSocket extends TlsPskSocket {
   }
 
   private static TlsClient createClient(byte[] key) {
-    return new PSKTlsClient(CRYPTO, new byte[0], key);
+    return new PSKTlsClient(CRYPTO, new byte[0], key) {
+      @Override
+      public ProtocolVersion[] getSupportedVersions() {
+        return ProtocolVersion.TLSv12.only(); // prevent downgrade attacks
+      }
+    };
   }
 }

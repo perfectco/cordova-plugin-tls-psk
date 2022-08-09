@@ -1,6 +1,7 @@
 package com.perfectco.cordova;
 
 import org.bouncycastle.tls.PSKTlsServer;
+import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.TlsPSKIdentityManager;
 import org.bouncycastle.tls.TlsServer;
 import org.bouncycastle.tls.TlsServerProtocol;
@@ -85,6 +86,11 @@ public class TlsPskServer {
       public byte[] getPSK(byte[] identity) {
         return key;
       }
-    });
+    }) {
+      @Override
+      public ProtocolVersion[] getSupportedVersions() {
+        return ProtocolVersion.TLSv12.only(); // prevent downgrade attacks
+      }
+    };
   }
 }
