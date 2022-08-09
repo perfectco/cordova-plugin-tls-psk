@@ -24,8 +24,17 @@ public class TlsPskPlugin extends CordovaPlugin {
   private static final String ACTION_RECEIVE = "receive";
   private static final String ACTION_START = "start";
   private static final String ACTION_STOP = "stop";
-  private static final String GET_SERVER_COUNT = "get_server_count";
-  private static final String GET_CLIENT_COUNT = "get_client_count";
+  private static final String ACTION_ON_ACCEPT = "onAccept";
+  private static final String ACTION_ON_RECEIVE = "onReceive";
+  private static final String ACTION_ON_CLOSE = "onClose";
+  private static final String GET_SERVER_COUNT = "getServerCount";
+  private static final String GET_CLIENT_COUNT = "getClientCount";
+
+  private static final String FIELD_ACTION = "action";
+  private static final String FIELD_UUID = "uuid";
+  private static final String FIELD_HOST = "host";
+  private static final String FIELD_PORT = "port";
+  private static final String FIELD_DATA = "data";
 
   private final ConcurrentMap<UUID, TlsPskSocket> clients = new ConcurrentHashMap<>();
   private final ConcurrentMap<UUID, TlsPskServer> servers = new ConcurrentHashMap<>();
@@ -65,9 +74,9 @@ public class TlsPskPlugin extends CordovaPlugin {
           try {
             TlsPskSocket client = connect(host, port, key, callbackContext);
             JSONObject status = new JSONObject();
-            status.put("uuid", client.getUuid().toString());
-            status.put("host", host);
-            status.put("port", port);
+            status.put(FIELD_UUID, client.getUuid().toString());
+            status.put(FIELD_HOST, host);
+            status.put(FIELD_PORT, port);
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
             callbackContext.sendPluginResult(result);
           } catch (IOException | JSONException e) {
@@ -153,8 +162,8 @@ public class TlsPskPlugin extends CordovaPlugin {
           try {
             TlsPskServer server = start(key, port, callbackContext);
             JSONObject status = new JSONObject();
-            status.put("uuid", server.getUuid().toString());
-            status.put("port", server.getPort());
+            status.put(FIELD_UUID, server.getUuid().toString());
+            status.put(FIELD_PORT, server.getPort());
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
             result.setKeepCallback(true);
             callbackContext.sendPluginResult(result);
@@ -223,9 +232,9 @@ public class TlsPskPlugin extends CordovaPlugin {
         public void onReceive(byte[] data, int len) {
           try {
             JSONObject status = new JSONObject();
-            status.put("action", "receive");
-            status.put("uuid", socket.getUuid());
-            status.put("data", toJSONArray(data, 0, len));
+            status.put(FIELD_ACTION, ACTION_ON_RECEIVE);
+            status.put(FIELD_UUID, socket.getUuid());
+            status.put(FIELD_DATA, toJSONArray(data, 0, len));
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
             result.setKeepCallback(true);
             cb.sendPluginResult(result);
@@ -236,8 +245,8 @@ public class TlsPskPlugin extends CordovaPlugin {
         public void onClose() {
           try {
             JSONObject status = new JSONObject();
-            status.put("action", "close");
-            status.put("uuid", socket.getUuid());
+            status.put(FIELD_ACTION, ACTION_ON_CLOSE);
+            status.put(FIELD_UUID, socket.getUuid());
             PluginResult result = new PluginResult(PluginResult.Status.OK, status);
             cb.sendPluginResult(result);
           } catch (JSONException ignored) {}
@@ -253,10 +262,10 @@ public class TlsPskPlugin extends CordovaPlugin {
       InetSocketAddress addr = client.getSocketAddress();
       try {
         JSONObject status = new JSONObject();
-        status.put("action", "onAccept");
-        status.put("uuid", client.getUuid());
-        status.put("host", addr.getAddress().getHostAddress());
-        status.put("port", addr.getPort());
+        status.put(FIELD_ACTION, ACTION_ON_ACCEPT);
+        status.put(FIELD_UUID, client.getUuid());
+        status.put(FIELD_HOST, addr.getAddress().getHostAddress());
+        status.put(FIELD_PORT, addr.getPort());
         PluginResult result = new PluginResult(PluginResult.Status.OK, status);
         result.setKeepCallback(true);
         cb.sendPluginResult(result);

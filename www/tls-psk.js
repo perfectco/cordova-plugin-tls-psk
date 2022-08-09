@@ -1,6 +1,18 @@
 'use strict';
 var exec = require('cordova/exec');
 
+const TLS_PSK = 'tls_psk';
+
+const ACTION_CONNECT = 'connect';
+const ACTION_CLOSE = 'close';
+const ACTION_SEND = 'send';
+const ACTION_RECEIVE = 'receive';
+const ACTION_START = 'start';
+const ACTION_STOP = 'stop';
+const ACTION_ON_ACCEPT = 'onAccept';
+const ACTION_ON_RECEIVE = 'onReceive';
+const ACTION_ON_CLOSE = 'onClose';
+
 function toByteArrayOrString(data) {
   if (typeof data === 'string')
     return data;
@@ -17,29 +29,29 @@ class TlsPskSocket {
       if (success) {
         success(result);
       }
-    }, failure, 'tls_psk', 'close', [this.uuid]);
+    }, failure, TLS_PSK, ACTION_CLOSE, [this.uuid]);
   }
 
   send(success, failure, data) {
     data = toByteArrayOrString(data);
-    exec(success, failure, 'tls_psk', 'send', [this.uuid, data]);
+    exec(success, failure, TLS_PSK, ACTION_SEND, [this.uuid, data]);
   }
 
   connect() {
     exec((result) => {
       switch (result.action) {
-        case 'receive':
+        case ACTION_ON_RECEIVE:
           if (this.onReceive) {
             this.onReceive(this, result.data);
           }
           break;
-        case 'close':
+        case ACTION_ON_CLOSE:
           if (this.onClose) {
             this.onClose(this);
           }
           break;
         }
-    }, null, 'tls_psk', 'receive', [this.uuid]);
+    }, null, TLS_PSK, ACTION_RECEIVE, [this.uuid]);
   }
 }
 
@@ -60,7 +72,7 @@ class TlsPskClientSocket extends TlsPskSocket {
       if(success) {
         success('OK');
       }
-    }, failure, 'tls_psk', 'connect', [key, host, port]);
+    }, failure, TLS_PSK, ACTION_CONNECT, [key, host, port]);
   }
 };
 
@@ -75,7 +87,7 @@ class TlsPskServer {
     key = toByteArrayOrString(key);
     exec((result) => {
       switch (result.action) {
-        case 'onAccept':
+        case ACTION_ON_ACCEPT:
           if (this.onAccept) {
             var socket = new TlsPskSocket();
             socket.uuid = result.uuid;
@@ -97,7 +109,7 @@ class TlsPskServer {
           }
           break;
       }
-    }, failure, 'tls_psk', 'start', [key, port]);
+    }, failure, TLS_PSK, ACTION_START, [key, port]);
   }
 
   stop(success, failure) {
@@ -107,7 +119,7 @@ class TlsPskServer {
       if (success) {
         success(result);
       }
-    }, failure, 'tls_psk', 'stop', [this.uuid]);
+    }, failure, TLS_PSK, ACTION_STOP, [this.uuid]);
   }
 };
 

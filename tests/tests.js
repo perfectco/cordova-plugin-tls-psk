@@ -3,11 +3,11 @@ exports.defineAutoTests = () => {
 
   // Internal API calls for testing
   function getInternalServerCount() {
-    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'get_server_count'));
+    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'getServerCount'));
   }
 
   function getInternalClientCount() {
-    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'get_client_count'));
+    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'getClientCount'));
   }
 
   describe('TLS-PSK server', () => {
