@@ -35,11 +35,11 @@ To start a new TLS-PSK server, first create an instance of the `TlsPskServer` cl
 const server = new window.cordova.plugins.tls_psk.TlsPskServer();
 ```
 
-To start the server, call the `start()` method with the PSK to use as a `Uint8Array`.
+Call the `start()` method, specifying the PSK to use.
 You can optionally specify a TCP port to listen on as well.
 
 ```javascript
-const key = Uint8Array.from([1, 2, 3, 4]);
+const key = Uint8Array.from([...]);
 server.start(onSuccess, onFailure, key, port);
 ```
 
