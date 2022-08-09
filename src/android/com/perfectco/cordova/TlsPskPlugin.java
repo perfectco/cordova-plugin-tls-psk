@@ -72,7 +72,7 @@ public class TlsPskPlugin extends CordovaPlugin {
 
         cordova.getThreadPool().execute(() -> {
           try {
-            TlsPskSocket client = connect(host, port, key, callbackContext);
+            TlsPskSocket client = connect(host, port, key);
             JSONObject status = new JSONObject();
             status.put(FIELD_UUID, client.getUuid().toString());
             status.put(FIELD_HOST, host);
@@ -203,9 +203,9 @@ public class TlsPskPlugin extends CordovaPlugin {
     return false;
   }
 
-  private TlsPskSocket connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
+  private TlsPskSocket connect(String host, int port, byte[] key) throws IOException {
     TlsPskClientSocket client = new TlsPskClientSocket(key);
-    client.connect(host, port, cb);
+    client.connect(host, port);
     clients.put(client.getUuid(), client);
     return client;
   }

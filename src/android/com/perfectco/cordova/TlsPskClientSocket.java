@@ -1,6 +1,5 @@
 package com.perfectco.cordova;
 
-import org.apache.cordova.CallbackContext;
 import org.bouncycastle.tls.PSKTlsClient;
 import org.bouncycastle.tls.TlsClient;
 import org.bouncycastle.tls.TlsClientProtocol;
@@ -15,7 +14,7 @@ public class TlsPskClientSocket extends TlsPskSocket {
     client = createClient(key);
   }
 
-  public void connect(String host, int port, final CallbackContext callbackContext) throws IOException {
+  public void connect(String host, int port) throws IOException {
     if (isConnected()) {
       throw new IllegalStateException();
     }
