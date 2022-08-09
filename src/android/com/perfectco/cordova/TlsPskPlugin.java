@@ -23,6 +23,8 @@ public class TlsPskPlugin extends CordovaPlugin {
   private static final String ACTION_RECEIVE = "receive";
   private static final String ACTION_START = "start";
   private static final String ACTION_STOP = "stop";
+  private static final String GET_SERVER_COUNT = "get_server_count";
+  private static final String GET_CLIENT_COUNT = "get_client_count";
 
   private final HashMap<UUID, TlsPskSocket> clients = new HashMap<>();
   private final HashMap<UUID, TlsPskServer> servers = new HashMap<>();
@@ -181,22 +183,27 @@ public class TlsPskPlugin extends CordovaPlugin {
           }
         });
       } return true;
+      case GET_SERVER_COUNT:
+        callbackContext.success(servers.size());
+        return true;
+      case GET_CLIENT_COUNT:
+        callbackContext.success(clients.size());
+        return true;
     }
     return false;
   }
 
   private TlsPskSocket connect(String host, int port, byte[] key, final CallbackContext cb) throws IOException {
     TlsPskClientSocket client = new TlsPskClientSocket(key);
-    clients.put(client.getUuid(), client);
     client.connect(host, port, cb);
+    clients.put(client.getUuid(), client);
     return client;
   }
 
   private void close(UUID id) throws IOException {
-    TlsPskSocket socket = clients.get(id);
+    TlsPskSocket socket = clients.remove(id);
     if (socket != null) {
       socket.close();
-      clients.remove(id);
     }
   }
 
@@ -240,7 +247,6 @@ public class TlsPskPlugin extends CordovaPlugin {
 
   private TlsPskServer start(byte[] key, int port, final CallbackContext cb) throws IOException {
     TlsPskServer server = new TlsPskServer(key);
-    servers.put(server.getUuid(), server);
     server.start(port, cordova.getThreadPool(), (client) -> {
       clients.put(client.getUuid(), client);
       InetSocketAddress addr = client.getSocketAddress();
@@ -255,14 +261,14 @@ public class TlsPskPlugin extends CordovaPlugin {
         cb.sendPluginResult(result);
       } catch (JSONException ignored) {}
     });
+    servers.put(server.getUuid(), server);
     return server;
   }
 
   private void stop(UUID id) throws IOException {
-    TlsPskServer server = servers.get(id);
+    TlsPskServer server = servers.remove(id);
     if (server != null) {
       server.stop();
-      servers.remove(id);
     }
   }
 

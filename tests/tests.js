@@ -1,10 +1,20 @@
 exports.defineAutoTests = () => {
   const key = Uint8Array.from([0x01, 0x23]);
 
+  // Internal API calls for testing
+  function getInternalServerCount() {
+    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'get_server_count'));
+  }
+
+  function getInternalClientCount() {
+    return new Promise((res) => window.cordova.exec(res, null, 'tls_psk', 'get_client_count'));
+  }
+
   describe('TLS-PSK server', () => {
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     afterEach(async () => {
-        await new Promise((res) => server.stop(res, res));
+      await new Promise((res) => server.stop(res, res));
+      expect(await getInternalServerCount()).toBe(0);
     });
 
     [40000, undefined].forEach((port) => {
@@ -80,6 +90,7 @@ exports.defineAutoTests = () => {
       expect(client.uuid).toBeUndefined();
       expect(client.host).toBeUndefined();
       expect(client.port).toBeUndefined();
+      expect(await getInternalClientCount()).toBe(0);
     });
 
     ['send', 'close'].forEach((method) => it(`errors on ${method} if not connected`, async () => {
@@ -93,6 +104,7 @@ exports.defineAutoTests = () => {
       }
 
       expect(error).toBe('Unknown client');
+      expect(await getInternalClientCount()).toBe(0);
     }));
   });
 
@@ -116,6 +128,8 @@ exports.defineAutoTests = () => {
       clients.length = 0;
       await new Promise((res, rej) => server.stop(res, rej));
       delete server.onReceive;
+      expect(await getInternalClientCount()).toBe(0);
+      expect(await getInternalServerCount()).toBe(0);
     });
 
     it('accepts client connections', async () => {
