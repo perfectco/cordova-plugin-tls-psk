@@ -218,5 +218,26 @@ exports.defineAutoTests = () => {
 
       expect(await close).toBe(client);
     });
+
+    it('handles multiple servers and clients', async () => {
+      const key2 = Uint8Array.from([0xAB, 0xCD]);
+      const server2 = new window.cordova.plugins.tls_psk.TlsPskServer();
+      server2.onAccept = server.onAccept;
+      const client2 = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+      try {
+        await new Promise((res, rej) => server2.start(res, rej, key2));
+        await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+        await new Promise((res, rej) => client2.connect(res, rej, key2, 'localhost', server2.port));
+
+        expect(clients.length).toBe(2);
+        expect(await getInternalClientCount()).toBe(4); // x2 for server-side sockets
+      } finally {
+        try {
+          await new Promise((res, rej) => client2.close(res, rej));
+        } finally {
+          await new Promise((res, rej) => server2.stop(res, rej));
+        }
+      }
+    });
   });
 }
