@@ -4,9 +4,7 @@ exports.defineAutoTests = () => {
   describe('TLS-PSK server', () => {
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     afterEach(async () => {
-      try {
-        await new Promise((res, rej) => server.stop(res, rej));
-      } catch (e) {}
+        await new Promise((res) => server.stop(res, res));
     });
 
     [40000, undefined].forEach((port) => {
@@ -109,12 +107,11 @@ exports.defineAutoTests = () => {
     });
 
     afterEach(async () => {
-      try {
-        await new Promise((res, rej) => client.close(res, rej));
-      } catch (e) {}
+      await new Promise((res) => client.close(res, res));
       delete client.onReceive;
+      delete client.onClose;
       await Promise.all(clients.map(async (client) => {
-        return new Promise((res, rej) => client.close(res, rej));
+        return new Promise((res) => client.close(res, res));
       }));
       clients.length = 0;
       await new Promise((res, rej) => server.stop(res, rej));
@@ -144,8 +141,6 @@ exports.defineAutoTests = () => {
       }
 
       expect(error).toBe('Client already connected');
-
-      await new Promise((res, rej) => client.close(res, rej));
     });
 
     it('errors on incorrect key', async () => {
@@ -170,34 +165,44 @@ exports.defineAutoTests = () => {
 
     it('can send data from the client', async () => {
       const payload = 'foobar';
-      let receive = new Promise((res, rej) => {
+      let receive = new Promise((res) => {
         server.onReceive = (conn, data) => res(dataToString(data));
-        setTimeout(rej, 1000);
       });
       await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
-
       await new Promise((res, rej) => client.send(res, rej, payload));
-      let received = await receive;
 
-      expect(received).toBe(payload);
-
-      await new Promise((res, rej) => client.close(res, rej));
+      expect(await receive).toBe(payload);
     });
 
     it('can send data from the server', async () => {
       const payload = 'foobar';
-      let receive = new Promise((res, rej) => {
+      let receive = new Promise((res) => {
         client.onReceive = (conn, data) => res(dataToString(data));
-        setTimeout(rej, 1000);
       });
       await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
-
       await new Promise((res, rej) => clients[0].send(res, rej, payload));
-      let received = await receive;
 
-      expect(received).toBe(payload);
+      expect(await receive).toBe(payload);
+    });
 
+    it('detects close from the client', async () => {
+      let close = new Promise((res) => {
+        server.onClose = (conn) => res(conn);
+      });
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
       await new Promise((res, rej) => client.close(res, rej));
+
+      expect(await close).toBe(clients[0]);
+    });
+
+    it('detects close from the server', async () => {
+      let close = new Promise((res) => {
+        client.onClose = (conn) => res(conn);
+      });
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+      await new Promise((res, rej) => clients[0].close(res, rej));
+
+      expect(await close).toBe(client);
     });
   });
 }

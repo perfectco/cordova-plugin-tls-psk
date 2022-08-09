@@ -27,9 +27,18 @@ class TlsPskSocket {
 
   connect() {
     exec((result) => {
-      if (this.onReceive) {
-        this.onReceive(this, result.data);
-      }
+      switch (result.action) {
+        case 'receive':
+          if (this.onReceive) {
+            this.onReceive(this, result.data);
+          }
+          break;
+        case 'close':
+          if (this.onClose) {
+            this.onClose(this);
+          }
+          break;
+        }
     }, null, 'tls_psk', 'receive', [this.uuid]);
   }
 }
@@ -73,6 +82,7 @@ class TlsPskServer {
             socket.host = result.host;
             socket.port = result.port;
             socket.onReceive = this.onReceive;
+            socket.onClose = this.onClose;
             socket.connect();
             if (this.onAccept) {
               this.onAccept(socket);

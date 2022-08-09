@@ -21,6 +21,7 @@ public class TlsPskSocket {
 
   public interface ReceiveCallback {
     void onReceive(byte[] data, int len);
+    void onClose();
   }
 
   public TlsPskSocket(Socket socket, TlsProtocol protocol) {
@@ -95,6 +96,8 @@ public class TlsPskSocket {
           }
         } while (!Thread.currentThread().isInterrupted() && read >= 0);
       } catch (IOException | NullPointerException ignored) {
+      } finally {
+        receiveCallback.onClose();
       }
     });
     receiveThread.start();

@@ -210,15 +210,30 @@ public class TlsPskPlugin extends CordovaPlugin {
   private void receive(UUID id, CallbackContext cb) {
     final TlsPskSocket socket = clients.get(id);
     if (socket != null) {
-      socket.startReceiveThread((data, len) -> {
-        try {
-          JSONObject status = new JSONObject();
-          status.put("uuid", socket.getUuid());
-          status.put("data", toJSONArray(data, 0, len));
-          PluginResult result = new PluginResult(PluginResult.Status.OK, status);
-          result.setKeepCallback(true);
-          cb.sendPluginResult(result);
-        } catch (JSONException ignored) {}
+      socket.startReceiveThread(new TlsPskSocket.ReceiveCallback() {
+        @Override
+        public void onReceive(byte[] data, int len) {
+          try {
+            JSONObject status = new JSONObject();
+            status.put("action", "receive");
+            status.put("uuid", socket.getUuid());
+            status.put("data", toJSONArray(data, 0, len));
+            PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+            result.setKeepCallback(true);
+            cb.sendPluginResult(result);
+          } catch (JSONException ignored) {}
+        }
+
+        @Override
+        public void onClose() {
+          try {
+            JSONObject status = new JSONObject();
+            status.put("action", "close");
+            status.put("uuid", socket.getUuid());
+            PluginResult result = new PluginResult(PluginResult.Status.OK, status);
+            cb.sendPluginResult(result);
+          } catch (JSONException ignored) {}
+        }
       });
     }
   }
