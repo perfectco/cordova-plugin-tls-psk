@@ -123,9 +123,7 @@ class TlsPskServer {
   }
 };
 
-const tls_psk = {
+module.exports = Object.freeze({
   TlsPskClientSocket,
   TlsPskServer
-};
-
-module.exports = tls_psk;
+});
