@@ -12,8 +12,9 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class TlsPskPlugin extends CordovaPlugin {
   private static final String TAG = "TlsPskPlugin";
@@ -26,8 +27,8 @@ public class TlsPskPlugin extends CordovaPlugin {
   private static final String GET_SERVER_COUNT = "get_server_count";
   private static final String GET_CLIENT_COUNT = "get_client_count";
 
-  private final HashMap<UUID, TlsPskSocket> clients = new HashMap<>();
-  private final HashMap<UUID, TlsPskServer> servers = new HashMap<>();
+  private final ConcurrentMap<UUID, TlsPskSocket> clients = new ConcurrentHashMap<>();
+  private final ConcurrentMap<UUID, TlsPskServer> servers = new ConcurrentHashMap<>();
 
   @Override
   public boolean execute(String action, JSONArray args, final CallbackContext callbackContext) {
