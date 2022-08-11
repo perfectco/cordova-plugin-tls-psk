@@ -133,15 +133,24 @@ exports.defineAutoTests = () => {
     });
 
     it('accepts client connections', async () => {
-      let result = await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
-      expect(result).toBe('OK');
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
       expect(client.host).toBe('localhost');
       expect(client.port).toBe(server.port);
       expect(clients.length).toBe(1);
 
-      result = await new Promise((res, rej) => client.close(res, rej));
+      await new Promise((res, rej) => client.close(res, rej));
       expect(client.host).toBeUndefined();
       expect(client.port).toBeUndefined();
+
+      await new Promise((res, rej) => clients[0].close(res, rej));
+      clients.length = 0;
+      expect(await getInternalClientCount()).toBe(0);
+
+      // reconnect
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+      expect(client.host).toBe('localhost');
+      expect(client.port).toBe(server.port);
+      expect(clients.length).toBe(1);
     });
 
     it('errors if already connected', async () => {
@@ -173,18 +182,15 @@ exports.defineAutoTests = () => {
       expect(client.port).toBeUndefined();
     });
 
-    it('errors on multiple clients w/ same key', async () => {
-      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+    it('accepts multiple clients', async () => {
       const client2 = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
 
-      let error;
-      try {
-        await new Promise((res, rej) => client2.connect(res, rej, key, 'localhost', server.port));
-      } catch (e) {
-        error = e;
-      }
+      await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', server.port));
+      await new Promise((res, rej) => client2.connect(res, rej, key, 'localhost', server.port));
 
-      expect(error).toBe('Connect error');
+      expect(clients.length).toBe(2);
+
+      await new Promise((res, rej) => client2.close(res, rej));
     });
 
     function dataToString(data) {
