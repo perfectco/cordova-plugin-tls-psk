@@ -1,5 +1,7 @@
 package com.perfectco.cordova;
 
+import android.util.Log;
+
 import org.bouncycastle.tls.PSKTlsServer;
 import org.bouncycastle.tls.ProtocolVersion;
 import org.bouncycastle.tls.TlsPSKIdentityManager;
@@ -9,6 +11,7 @@ import org.bouncycastle.tls.TlsServerProtocol;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
@@ -47,7 +50,9 @@ public class TlsPskServer {
               TlsServerProtocol protocol = new TlsServerProtocol(client.getInputStream(), client.getOutputStream());
               protocol.accept(server);
               acceptCallback.onClientConnected(new TlsPskSocket(client, protocol));
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+              Log.e("TlsPskServer", "Failed to accept new client", e);
+            }
           });
         } catch (IOException ignored) {}
       }
@@ -84,7 +89,9 @@ public class TlsPskServer {
 
       @Override
       public byte[] getPSK(byte[] identity) {
-        return key;
+        // Server will wipe byte array on connect; return a copy instead.
+        // TODO: keep as few copies of key material in memory as possible, ideally zero.
+        return Arrays.copyOf(key, key.length);
       }
     }) {
       @Override
