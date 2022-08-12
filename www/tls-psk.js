@@ -88,18 +88,16 @@ class TlsPskServer {
     exec((result) => {
       switch (result.action) {
         case ACTION_ON_ACCEPT:
+          var socket = new TlsPskSocket();
+          socket.uuid = result.uuid;
+          socket.host = result.host;
+          socket.port = result.port;
+          socket.onReceive = this.onReceive;
+          socket.onClose = this.onClose;
           if (this.onAccept) {
-            var socket = new TlsPskSocket();
-            socket.uuid = result.uuid;
-            socket.host = result.host;
-            socket.port = result.port;
-            socket.onReceive = this.onReceive;
-            socket.onClose = this.onClose;
-            socket.connect();
-            if (this.onAccept) {
-              this.onAccept(socket);
-            }
+            this.onAccept(socket);
           }
+          socket.connect();
           break;
         default:
           this.uuid = result.uuid;
