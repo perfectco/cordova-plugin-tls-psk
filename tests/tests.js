@@ -73,9 +73,38 @@ exports.defineAutoTests = () => {
       expect(server.uuid).toBeUndefined();
       expect(server.port).toBeUndefined();
     });
+
+    it('errors if no key provided', async () => {
+      let error;
+      try {
+        await new Promise((res, rej) => server.start(res, rej));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(() => { throw error; }).toThrowError(TypeError);
+      expect(server.uuid).toBeUndefined();
+      expect(server.port).toBeUndefined();
+    });
   });
 
   describe('TLS-PSK client', () => {
+    [null, undefined].forEach(key => it(`errors on ${key} key`, async () => {
+      const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
+
+      let error;
+      try {
+        await new Promise((res, rej) => client.connect(res, rej, key, 'localhost', 9));
+      } catch (e) {
+        error = e;
+      }
+
+      expect(() => { throw error; }).toThrowError(TypeError);
+      expect(client.uuid).toBeUndefined();
+      expect(client.host).toBeUndefined();
+      expect(client.port).toBeUndefined();
+    }));
+
     it('errors if server not available', async () => {
       const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
 
@@ -108,7 +137,7 @@ exports.defineAutoTests = () => {
     }));
   });
 
-  describe('TLS-PSK sockets', () => {
+  describe('TLS-PSK socket', () => {
     const client = new window.cordova.plugins.tls_psk.TlsPskClientSocket();
     const server = new window.cordova.plugins.tls_psk.TlsPskServer();
     const clients = [];
