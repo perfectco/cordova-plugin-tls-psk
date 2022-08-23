@@ -2,7 +2,7 @@
 <plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-tls-psk" version="0">
   <name>TLS-PSK</name>
   <description>Cordova TLS-PSK Plugin</description>
-  <license>Apache 2.0</license>
+  <license>MIT</license>
   <keywords>cordova,psk,tls-psk,tls_psk</keywords>
   <js-module src="www/tls-psk.js" name="tls_psk">
     <clobbers target="cordova.plugins.tls_psk" />
