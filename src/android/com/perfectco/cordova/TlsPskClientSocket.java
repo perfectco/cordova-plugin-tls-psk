@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.Socket;
 
 public class TlsPskClientSocket extends TlsPskSocket {
+  private static int SOCKET_TIMEOUT_MS = 5000;
   private final TlsClient client;
 
   public TlsPskClientSocket(byte[] key) {
@@ -21,6 +22,7 @@ public class TlsPskClientSocket extends TlsPskSocket {
     }
 
     Socket socket = new Socket(host, port);
+    socket.setSoTimeout(SOCKET_TIMEOUT_MS);
     TlsClientProtocol protocol = new TlsClientProtocol(socket.getInputStream(), socket.getOutputStream());
     protocol.connect(client);
     connected(socket, protocol);

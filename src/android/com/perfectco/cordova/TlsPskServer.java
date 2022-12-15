@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 
 public class TlsPskServer {
+  private static int SOCKET_TIMEOUT_MS = 5000;
   private final UUID uuid = UUID.randomUUID();
   private final TlsServer server;
 
@@ -40,6 +41,7 @@ public class TlsPskServer {
     }
 
     socket = new ServerSocket(port);
+    socket.setSoTimeout(SOCKET_TIMEOUT_MS);
 
     acceptThread = new Thread(() -> {
       while (!Thread.currentThread().isInterrupted() && !socket.isClosed()) {
